@@ -156,8 +156,6 @@ Use the `create_order` tool to place actual shipping orders:
 # Complete order request
 order_data = {
     "product": "STANDARD",
-    "google_click_identifier": "gclid_abc123",  # Required
-    "external_id": "ORDER-2024-001",           # Your order reference
     "shipper": {
         "reference": "SHIPPER-001",
         "name": "My Company",

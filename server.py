@@ -238,8 +238,6 @@ async def create_quotation(
 @app.tool
 async def create_order(
     product: str,
-    google_click_identifier: str,
-    external_id: str,
     shipper: Dict[str, Any],
     consignee: Dict[str, Any],
     lines: List[Dict[str, Any]],
@@ -261,8 +259,6 @@ async def create_order(
 
     Args:
         product: Product type (DIRECT, EXPRESS, EXPRESS_8/10/12/16, FIX, FIX_8/10/12/16, STANDARD)
-        google_click_identifier: Google click identifier (required)
-        external_id: External ID of the order (required)
         shipper: Shipper information with keys: reference, name, address (required fields)
         consignee: Consignee information with keys: reference, name, address (required fields)
         lines: List of line items with required fields: content, unitQuantity, unitPackageType, unitLength, unitWidth, unitHeight, unitWeight
@@ -282,8 +278,6 @@ async def create_order(
     """
     order_data = {
         "product": product,
-        "googleClickIdentifier": google_click_identifier,
-        "externalId": external_id,
         "shipper": shipper,
         "consignee": consignee,
         "lines": lines,
