@@ -17,7 +17,7 @@ The MCP Server provides 5 essential tools:
 ### Prerequisites
 
 - Python 3.10 or higher
-- `uv` package manager (recommended) or `pip`
+- `uv` package manager
 - Cargoboard API key
 
 ### Installation
@@ -30,11 +30,7 @@ The MCP Server provides 5 essential tools:
 
 2. **Install dependencies**
    ```bash
-   # Using uv (recommended)
    uv sync
-   
-   # Or using pip
-   pip install fastmcp httpx python-dotenv
    ```
 
 3. **Configure environment variables**
@@ -250,10 +246,9 @@ Available shipping products:
 
 Common package type codes:
 
-- **PA** - Package/Parcel
-- **EN** - Envelope
-- **PL** - Pallet
-- **CT** - Container
+- **KT** - Package/Parcel
+- **FP** - Euro Pallet
+- **EP** - One Way Pallet
 
 ## Address Requirements
 
@@ -312,5 +307,5 @@ The server includes comprehensive error handling and logging. Common issues:
 ## Support
 
 For API documentation and support:
-- API Documentation: [Cargoboard API Docs](https://api.cargoboard.com/docs)
-- Contact support through your Cargoboard account portal
+- API Documentation: [Cargoboard API Docs](https://docs.cargoboard.com/)
+- Contact support via Email: api@cargoboard.com
