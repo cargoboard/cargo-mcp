@@ -205,3 +205,11 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Claude
+.claude/
+CLAUDE.md
+
+
+# python version
+.python-version
