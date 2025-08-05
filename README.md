@@ -306,4 +306,4 @@ The server includes comprehensive error handling and logging. Common issues:
 
 For API documentation and support:
 - API Documentation: [Cargoboard API Docs](https://docs.cargoboard.com/)
-- Contact support via Email: api@cargoboard.com
+- Contact support via Email: mcp@cargoboard.com
