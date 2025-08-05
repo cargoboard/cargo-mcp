@@ -51,7 +51,7 @@ Example line structure:
 
 import os
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
 import httpx
@@ -217,9 +217,37 @@ logger.info(f"Starting Customer MCP Server - base_url: {config.base_url}")
 @app.tool
 async def create_quotation(
     product: str,
-    shipper: ShipperConsignee,
-    consignee: ShipperConsignee,
-    lines: List[LineItem],
+    # Shipper information (required)
+    shipper_reference: str,
+    shipper_post_code: str,
+    shipper_country_code: str,
+    # Consignee information (required)
+    consignee_reference: str,
+    consignee_post_code: str,
+    consignee_country_code: str,
+    # Shipper information (optional)
+    shipper_name: Optional[str] = None,
+    shipper_street: Optional[str] = None,
+    shipper_city: Optional[str] = None,
+    shipper_contact_name: Optional[str] = None,
+    shipper_contact_phone: Optional[str] = None,
+    shipper_contact_email: Optional[str] = None,
+    # Consignee information (optional)
+    consignee_name: Optional[str] = None,
+    consignee_street: Optional[str] = None,
+    consignee_city: Optional[str] = None,
+    consignee_contact_name: Optional[str] = None,
+    consignee_contact_phone: Optional[str] = None,
+    consignee_contact_email: Optional[str] = None,
+    # Line items (simplified - single item for now)
+    line_content: str = "General cargo",
+    line_quantity: int = 1,
+    line_package_type: str = "PA",
+    line_length: float = 100.0,
+    line_width: float = 80.0,
+    line_height: float = 60.0,
+    line_weight: float = 10.0,
+    # Optional parameters
     customer_order_code: Optional[str] = None,
     coupon_code: Optional[str] = None,
     uit_code: Optional[str] = None,
@@ -237,9 +265,31 @@ async def create_quotation(
 
     Args:
         product: Product type (DIRECT, EXPRESS, EXPRESS_8/10/12/16, FIX, FIX_8/10/12/16, STANDARD)
-        shipper: Shipper information (ShipperConsignee model)
-        consignee: Consignee information (ShipperConsignee model)
-        lines: List of line items (LineItem models)
+        shipper_reference: Shipper reference/identifier
+        shipper_name: Shipper company name (optional for quotations)
+        shipper_post_code: Shipper postal code
+        shipper_country_code: Shipper country code (e.g., "DE", "FR")
+        shipper_street: Shipper street address (optional)
+        shipper_city: Shipper city (optional)
+        shipper_contact_name: Shipper contact person name (optional)
+        shipper_contact_phone: Shipper contact phone (optional)
+        shipper_contact_email: Shipper contact email (optional)
+        consignee_reference: Consignee reference/identifier
+        consignee_name: Consignee company name (optional for quotations)
+        consignee_post_code: Consignee postal code
+        consignee_country_code: Consignee country code (e.g., "DE", "FR")
+        consignee_street: Consignee street address (optional)
+        consignee_city: Consignee city (optional)
+        consignee_contact_name: Consignee contact person name (optional)
+        consignee_contact_phone: Consignee contact phone (optional)
+        consignee_contact_email: Consignee contact email (optional)
+        line_content: Description of goods
+        line_quantity: Number of packages
+        line_package_type: Package type (PA=Package, FP=Flat Pallet, etc.)
+        line_length: Package length in cm
+        line_width: Package width in cm
+        line_height: Package height in cm
+        line_weight: Package weight in kg
         customer_order_code: Customer order code for documents
         coupon_code: Coupon code for special actions/discounts
         uit_code: UIT code
@@ -253,11 +303,68 @@ async def create_quotation(
         value_of_goods_currency: Currency of value of goods (EUR)
         lines_pallet_bays: Lines pallet bays of quotation
     """
+    # Build shipper object
+    shipper_data = {
+        "reference": shipper_reference,
+        "address": {
+            "postCode": shipper_post_code,
+            "countryCode": shipper_country_code,
+        }
+    }
+    if shipper_name:
+        shipper_data["name"] = shipper_name
+    if shipper_street:
+        shipper_data["address"]["street"] = shipper_street
+    if shipper_city:
+        shipper_data["address"]["city"] = shipper_city
+    if shipper_contact_name:
+        shipper_data["contactPerson"] = {
+            "name": shipper_contact_name,
+        }
+        if shipper_contact_phone:
+            shipper_data["contactPerson"]["phone"] = shipper_contact_phone
+        if shipper_contact_email:
+            shipper_data["contactPerson"]["email"] = shipper_contact_email
+
+    # Build consignee object
+    consignee_data = {
+        "reference": consignee_reference,
+        "address": {
+            "postCode": consignee_post_code,
+            "countryCode": consignee_country_code,
+        }
+    }
+    if consignee_name:
+        consignee_data["name"] = consignee_name
+    if consignee_street:
+        consignee_data["address"]["street"] = consignee_street
+    if consignee_city:
+        consignee_data["address"]["city"] = consignee_city
+    if consignee_contact_name:
+        consignee_data["contactPerson"] = {
+            "name": consignee_contact_name,
+        }
+        if consignee_contact_phone:
+            consignee_data["contactPerson"]["phone"] = consignee_contact_phone
+        if consignee_contact_email:
+            consignee_data["contactPerson"]["email"] = consignee_contact_email
+
+    # Build line item
+    line_data = {
+        "content": line_content,
+        "unitQuantity": line_quantity,
+        "unitPackageType": line_package_type,
+        "unitLength": line_length,
+        "unitWidth": line_width,
+        "unitHeight": line_height,
+        "unitWeight": line_weight,
+    }
+
     quotation_data = {
         "product": product,
-        "shipper": shipper.model_dump(by_alias=True),
-        "consignee": consignee.model_dump(by_alias=True),
-        "lines": [line.model_dump(by_alias=True) for line in lines],
+        "shipper": shipper_data,
+        "consignee": consignee_data,
+        "lines": [line_data],
         "wantsExportDeclaration": wants_export_declaration,
         "wantsClimateNeutralShipment": wants_climate_neutral_shipment,
         "wantsInsurance": wants_insurance,
@@ -282,9 +389,36 @@ async def create_quotation(
 @app.tool
 async def create_order(
     product: str,
-    shipper: ShipperConsignee,
-    consignee: ShipperConsignee,
-    lines: List[LineItem],
+    # Shipper information (required for orders)
+    shipper_reference: str,
+    shipper_name: str,
+    shipper_post_code: str,
+    shipper_country_code: str,
+    shipper_street: str,
+    shipper_city: str,
+    # Consignee information (required for orders)
+    consignee_reference: str,
+    consignee_name: str,
+    consignee_post_code: str,
+    consignee_country_code: str,
+    consignee_street: str,
+    consignee_city: str,
+    # Optional contact information
+    shipper_contact_name: Optional[str] = None,
+    shipper_contact_phone: Optional[str] = None,
+    shipper_contact_email: Optional[str] = None,
+    consignee_contact_name: Optional[str] = None,
+    consignee_contact_phone: Optional[str] = None,
+    consignee_contact_email: Optional[str] = None,
+    # Line items (simplified - single item for now)
+    line_content: str = "General cargo",
+    line_quantity: int = 1,
+    line_package_type: str = "PA",
+    line_length: float = 100.0,
+    line_width: float = 80.0,
+    line_height: float = 60.0,
+    line_weight: float = 10.0,
+    # Optional parameters
     customer_order_code: Optional[str] = None,
     coupon_code: Optional[str] = None,
     uit_code: Optional[str] = None,
@@ -303,9 +437,31 @@ async def create_order(
 
     Args:
         product: Product type (DIRECT, EXPRESS, EXPRESS_8/10/12/16, FIX, FIX_8/10/12/16, STANDARD)
-        shipper: Shipper information (ShipperConsignee model with name required)
-        consignee: Consignee information (ShipperConsignee model with name required)
-        lines: List of line items (LineItem models)
+        shipper_reference: Shipper reference/identifier
+        shipper_name: Shipper company name (required for orders)
+        shipper_post_code: Shipper postal code
+        shipper_country_code: Shipper country code (e.g., "DE", "FR")
+        shipper_street: Shipper street address (required for orders)
+        shipper_city: Shipper city (required for orders)
+        shipper_contact_name: Shipper contact person name (optional)
+        shipper_contact_phone: Shipper contact phone (optional)
+        shipper_contact_email: Shipper contact email (optional)
+        consignee_reference: Consignee reference/identifier
+        consignee_name: Consignee company name (required for orders)
+        consignee_post_code: Consignee postal code
+        consignee_country_code: Consignee country code (e.g., "DE", "FR")
+        consignee_street: Consignee street address (required for orders)
+        consignee_city: Consignee city (required for orders)
+        consignee_contact_name: Consignee contact person name (optional)
+        consignee_contact_phone: Consignee contact phone (optional)
+        consignee_contact_email: Consignee contact email (optional)
+        line_content: Description of goods
+        line_quantity: Number of packages
+        line_package_type: Package type (PA=Package, FP=Flat Pallet, etc.)
+        line_length: Package length in cm
+        line_width: Package width in cm
+        line_height: Package height in cm
+        line_weight: Package weight in kg
         customer_order_code: Customer order code for documents
         coupon_code: Coupon code for special actions/discounts
         uit_code: UIT code
@@ -320,11 +476,62 @@ async def create_order(
         tax_declaration: Tax declaration for Hungary/Romania shipments
         lines_pallet_bays: Lines pallet bays of order
     """
+    # Build shipper object
+    shipper_data = {
+        "reference": shipper_reference,
+        "name": shipper_name,
+        "address": {
+            "postCode": shipper_post_code,
+            "countryCode": shipper_country_code,
+            "street": shipper_street,
+            "city": shipper_city,
+        }
+    }
+    if shipper_contact_name:
+        shipper_data["contactPerson"] = {
+            "name": shipper_contact_name,
+        }
+        if shipper_contact_phone:
+            shipper_data["contactPerson"]["phone"] = shipper_contact_phone
+        if shipper_contact_email:
+            shipper_data["contactPerson"]["email"] = shipper_contact_email
+
+    # Build consignee object
+    consignee_data = {
+        "reference": consignee_reference,
+        "name": consignee_name,
+        "address": {
+            "postCode": consignee_post_code,
+            "countryCode": consignee_country_code,
+            "street": consignee_street,
+            "city": consignee_city,
+        }
+    }
+    if consignee_contact_name:
+        consignee_data["contactPerson"] = {
+            "name": consignee_contact_name,
+        }
+        if consignee_contact_phone:
+            consignee_data["contactPerson"]["phone"] = consignee_contact_phone
+        if consignee_contact_email:
+            consignee_data["contactPerson"]["email"] = consignee_contact_email
+
+    # Build line item
+    line_data = {
+        "content": line_content,
+        "unitQuantity": line_quantity,
+        "unitPackageType": line_package_type,
+        "unitLength": line_length,
+        "unitWidth": line_width,
+        "unitHeight": line_height,
+        "unitWeight": line_weight,
+    }
+
     order_data = {
         "product": product,
-        "shipper": shipper.model_dump(by_alias=True),
-        "consignee": consignee.model_dump(by_alias=True),
-        "lines": [line.model_dump(by_alias=True) for line in lines],
+        "shipper": shipper_data,
+        "consignee": consignee_data,
+        "lines": [line_data],
         "wantsExportDeclaration": wants_export_declaration,
         "wantsClimateNeutralShipment": wants_climate_neutral_shipment,
         "wantsInsurance": wants_insurance,
