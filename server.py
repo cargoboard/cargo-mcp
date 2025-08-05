@@ -57,6 +57,7 @@ from dataclasses import dataclass
 import httpx
 from fastmcp import FastMCP
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 # Load environment variables from .env file
 load_dotenv()
@@ -70,6 +71,49 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger(__name__)
+
+
+class Address(BaseModel):
+    """Address information for shipper/consignee"""
+    post_code: str = Field(alias="postCode")
+    country_code: str = Field(alias="countryCode")
+    street: Optional[str] = None
+    city: Optional[str] = None
+
+    class Config:
+        populate_by_name = True
+
+
+class ContactPerson(BaseModel):
+    """Contact person information"""
+    name: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+
+
+class ShipperConsignee(BaseModel):
+    """Shipper or consignee information"""
+    reference: str
+    name: Optional[str] = None  # Required for orders, optional for quotations
+    address: Address
+    contact_person: Optional[ContactPerson] = Field(alias="contactPerson", default=None)
+
+    class Config:
+        populate_by_name = True
+
+
+class LineItem(BaseModel):
+    """Line item for shipment"""
+    content: str
+    unit_quantity: int = Field(alias="unitQuantity")
+    unit_package_type: str = Field(alias="unitPackageType")
+    unit_length: float = Field(alias="unitLength")
+    unit_width: float = Field(alias="unitWidth")
+    unit_height: float = Field(alias="unitHeight")
+    unit_weight: float = Field(alias="unitWeight")
+
+    class Config:
+        populate_by_name = True
 
 
 @dataclass
@@ -173,9 +217,9 @@ logger.info(f"Starting Customer MCP Server - base_url: {config.base_url}")
 @app.tool
 async def create_quotation(
     product: str,
-    shipper: Dict[str, Any],
-    consignee: Dict[str, Any],
-    lines: List[Dict[str, Any]],
+    shipper: ShipperConsignee,
+    consignee: ShipperConsignee,
+    lines: List[LineItem],
     customer_order_code: Optional[str] = None,
     coupon_code: Optional[str] = None,
     uit_code: Optional[str] = None,
@@ -193,9 +237,9 @@ async def create_quotation(
 
     Args:
         product: Product type (DIRECT, EXPRESS, EXPRESS_8/10/12/16, FIX, FIX_8/10/12/16, STANDARD)
-        shipper: Shipper information with keys: reference, address (required fields)
-        consignee: Consignee information with keys: reference, address (required fields)
-        lines: List of line items with required fields: content, unitQuantity, unitPackageType, unitLength, unitWidth, unitHeight, unitWeight
+        shipper: Shipper information (ShipperConsignee model)
+        consignee: Consignee information (ShipperConsignee model)
+        lines: List of line items (LineItem models)
         customer_order_code: Customer order code for documents
         coupon_code: Coupon code for special actions/discounts
         uit_code: UIT code
@@ -211,9 +255,9 @@ async def create_quotation(
     """
     quotation_data = {
         "product": product,
-        "shipper": shipper,
-        "consignee": consignee,
-        "lines": lines,
+        "shipper": shipper.model_dump(by_alias=True),
+        "consignee": consignee.model_dump(by_alias=True),
+        "lines": [line.model_dump(by_alias=True) for line in lines],
         "wantsExportDeclaration": wants_export_declaration,
         "wantsClimateNeutralShipment": wants_climate_neutral_shipment,
         "wantsInsurance": wants_insurance,
@@ -238,9 +282,9 @@ async def create_quotation(
 @app.tool
 async def create_order(
     product: str,
-    shipper: Dict[str, Any],
-    consignee: Dict[str, Any],
-    lines: List[Dict[str, Any]],
+    shipper: ShipperConsignee,
+    consignee: ShipperConsignee,
+    lines: List[LineItem],
     customer_order_code: Optional[str] = None,
     coupon_code: Optional[str] = None,
     uit_code: Optional[str] = None,
@@ -259,9 +303,9 @@ async def create_order(
 
     Args:
         product: Product type (DIRECT, EXPRESS, EXPRESS_8/10/12/16, FIX, FIX_8/10/12/16, STANDARD)
-        shipper: Shipper information with keys: reference, name, address (required fields)
-        consignee: Consignee information with keys: reference, name, address (required fields)
-        lines: List of line items with required fields: content, unitQuantity, unitPackageType, unitLength, unitWidth, unitHeight, unitWeight
+        shipper: Shipper information (ShipperConsignee model with name required)
+        consignee: Consignee information (ShipperConsignee model with name required)
+        lines: List of line items (LineItem models)
         customer_order_code: Customer order code for documents
         coupon_code: Coupon code for special actions/discounts
         uit_code: UIT code
@@ -278,9 +322,9 @@ async def create_order(
     """
     order_data = {
         "product": product,
-        "shipper": shipper,
-        "consignee": consignee,
-        "lines": lines,
+        "shipper": shipper.model_dump(by_alias=True),
+        "consignee": consignee.model_dump(by_alias=True),
+        "lines": [line.model_dump(by_alias=True) for line in lines],
         "wantsExportDeclaration": wants_export_declaration,
         "wantsClimateNeutralShipment": wants_climate_neutral_shipment,
         "wantsInsurance": wants_insurance,
